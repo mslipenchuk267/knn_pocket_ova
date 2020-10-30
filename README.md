@@ -5,8 +5,11 @@ This is the first assignment for Foundations of Machine Learning at Temple. It f
 
 ### 1. Activate virtual environment
 
-- Windows: Run ```.\env\Scripts\activate```
-- Mac: Run ```source env/bin/activate```
+#### Windows: 
+
+Run ```.\env\Scripts\activate```
+#### Mac: 
+Run ```source env/bin/activate```
 
 ### 2. Run code
 
