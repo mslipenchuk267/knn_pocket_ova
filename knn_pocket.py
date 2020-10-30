@@ -3,6 +3,7 @@ import numpy as np
 from scipy.spatial import distance
 from scipy import stats
 import datetime
+import matplotlib.pyplot as plt
 
 
 def compute_accuracy(test_y, pred_y):
@@ -37,13 +38,16 @@ def test_knn(train_x, train_y, test_x, num_nn):
     # Partially Vectorized Version
     #  I vectorized computing the distances and then iteratively choose the num_nn closest neighbors
     #  and select the most common label.
-    print(f"Starting kNN (k = {num_nn})")
     pred_y = np.empty(0)
-    distances = distance.cdist(test_x, train_x)
+    # Compute the euclidean distance on each testing observation against all training observations
+    distances = distance.cdist(test_x, train_x, metric='euclidean')
     for i, observation_distances in enumerate(distances):
+        # Return the num_nn closest neighbor indices (i.e. the values with shortest distances)
         closest_neighbors = observation_distances.argsort()[:num_nn]
+        # Get the labels from train_y using the indices of the closest neighbors
         closest_labels = [train_y[closest_neighbor_index]
                           for closest_neighbor_index in closest_neighbors]
+        # Select the most common label
         predicted_label = stats.mode(closest_labels)[0][0]
         print(f"Percent Done: {round(i/len(distances)*100, 3)}%", end='\r')
         pred_y = np.append(pred_y, predicted_label)
@@ -121,6 +125,39 @@ def get_id():
     """
     return 'tuf91673'
 
+def plot_kNN_accuracy(k_values, kNN_accuracies, sample_size):
+    # Plot settings
+    plt.grid()
+    plt.figure(1)
+    plt.title(f"kNN Evaluation (n={sample_size})")
+    plt.xlabel("k Size")
+    plt.ylabel("Accuracy (%)")
+    plt.ylim(round(min(kNN_accuracies)), round(max(kNN_accuracies)+1))
+    plt.yticks(np.arange(round(min(kNN_accuracies)-1), round(max(kNN_accuracies)+1)))
+    plt.xlim(0,10)
+    plt.xticks(np.arange(1, 11, step=2))
+    plt.plot(k_values, kNN_accuracies, '-o' ,label=f"{sample_size}")
+    plt.savefig(f"./kNN_plots/kNN_n{sample_size}_evaluation.png", bbox_inches='tight')
+    ax = plt.gca()
+    ax.lines.pop(0)
+    plt.figure(2)
+    plt.plot(k_values, kNN_accuracies, '-o' ,label=f"{sample_size}")
+    return plt
+
+def get_sub_sample_indices(array, size):
+    """Sub Sample an array by providing the number of samples needed
+
+    Args:
+        array (np.array): The array to sample, we just need its length
+        size (int): The number of indices from the array to generate
+
+    Returns:
+        np.array: An array containing randomly sampled indices
+    """
+
+    sub_sampled_indices = np.random.choice(np.arange(len(array)), size, replace=False)
+    return sub_sampled_indices
+
 
 def main():
     datasetPath = './letter-recognition.data'
@@ -146,18 +183,48 @@ def main():
     testX = dataX[numTrainingExamples:, :]
     testY = dataY[numTrainingExamples:]
 
+    # Run kNN and Pocket on these sample sizes
+    sub_sample_sizes = [100, 1000, 2000, 5000, 10000, 15000]
+    
     # kNN Section -------------------------------------------------------------
     k_values = [1, 3, 5, 7, 9]
-    for k_value in k_values:
-        time_before = datetime.datetime.now()
-        pred_y = test_knn(trainX, trainY, testX, k_value)
-        time_after = datetime.datetime.now()
+    kNN_start_time = datetime.datetime.now() 
+    for sample_size in sub_sample_sizes:
+        # Sub sample the training data
+        sample_indices = get_sub_sample_indices(trainX, sample_size)
+        trainXSample = trainX[sample_indices]
+        trainYSample = trainY[sample_indices]
+        # Initialize this sub samples kNN accuracy array
+        kNN_accuracies = []
+        kNN_run_times = []
+        # Run kNN for each required k value
+        for k_value in k_values:
+            time_before = datetime.datetime.now()
+            print(f"Starting kNN (k = {k_value}, n = {sample_size})")
+            pred_y = test_knn(trainXSample, trainYSample, testX, k_value)
+            time_after = datetime.datetime.now()
+            run_time = time_after - time_before
+            kNN_run_times.append(run_time)
+            kNN_acc = compute_accuracy(testY, pred_y)
+            kNN_accuracies.append(kNN_acc)
+        #print(f"Run Time: {kNN_run_times}")   
+        #print(f"Accuracy : {kNN_accuracies}%")
+        # Add to plot
+        plt = plot_kNN_accuracy(k_values, kNN_accuracies, sample_size)
+    kNN_end_time = datetime.datetime.now()
+    kNN_total_run_time = kNN_end_time - kNN_start_time
+    print(f"Total Run Time: {kNN_total_run_time}")
+    plt.figure(2)
+    plt.title(f"kNN Evaluation")
+    plt.xlabel("k Size")
+    plt.ylabel("Accuracy (%)")
+    plt.ylim(0, 100)
+    plt.xlim(0,10)
+    plt.xticks(np.arange(1, 11, step=2))
+    plt.yticks(np.arange(0, 110, step=10))
+    plt.legend(loc=(1.05, 0.5), title='Sample Size (n)')
+    plt.savefig("kNN_evaluation.png", bbox_inches='tight')
 
-        run_time = time_after - time_before
-        print(f"Run Time: {run_time}")
-
-        kNN_acc = compute_accuracy(testY, pred_y)
-        print(f"Accuracy : {kNN_acc}%")
 
 
 if __name__ == "__main__":
