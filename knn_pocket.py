@@ -4,6 +4,7 @@ from scipy.spatial import distance
 from scipy import stats
 import datetime
 import matplotlib.pyplot as plt
+from sklearn.metrics import classification_report, confusion_matrix, accuracy_score
 
 
 def compute_accuracy(test_y, pred_y):
@@ -200,17 +201,34 @@ def main():
         # Run kNN for each required k value
         for k_value in k_values:
             time_before = datetime.datetime.now()
-            print(f"Starting kNN (k = {k_value}, n = {sample_size})")
+            print(f"Running kNN (k = {k_value}, n = {sample_size})")
             pred_y = test_knn(trainXSample, trainYSample, testX, k_value)
             time_after = datetime.datetime.now()
             run_time = time_after - time_before
             kNN_run_times.append(run_time)
             kNN_acc = compute_accuracy(testY, pred_y)
             kNN_accuracies.append(kNN_acc)
+            print("-------------------------------")
+            print(f"kNN (k = {k_value}, n = {sample_size}) Stats")
+            #print(f"Accuracy Score{accuracy_score(testY, pred_y)}")
+            print(f"Accuracy Score: {kNN_acc}%")
+            print("Classification Matrix Results")
+            cmat = confusion_matrix(testY, pred_y)
+            #print(cmat)
+            print('TP - True Negative {}'.format(cmat[0,0]))
+            print('FP - False Positive {}'.format(cmat[0,1]))
+            print('FN - False Negative {}'.format(cmat[1,0]))
+            print('TP - True Positive {}'.format(cmat[1,1]))
+            print('Accuracy Rate: {}'.format(np.divide(np.sum([cmat[0,0],cmat[1,1]]),np.sum(cmat))))
+            print('Misclassification Rate: {}'.format(np.divide(np.sum([cmat[0,1],cmat[1,0]]),np.sum(cmat))))
+            print("-------------------------------")
+        
         #print(f"Run Time: {kNN_run_times}")   
         #print(f"Accuracy : {kNN_accuracies}%")
         # Add to plot
+        
         plt = plot_kNN_accuracy(k_values, kNN_accuracies, sample_size)
+    print("Completed kNN Evaluation")
     kNN_end_time = datetime.datetime.now()
     kNN_total_run_time = kNN_end_time - kNN_start_time
     print(f"Total Run Time: {kNN_total_run_time}")
