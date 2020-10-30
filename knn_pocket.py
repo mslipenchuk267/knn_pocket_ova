@@ -215,7 +215,7 @@ def main():
             print("Classification Matrix Results")
             cmat = confusion_matrix(testY, pred_y)
             #print(cmat)
-            print('TP - True Negative {}'.format(cmat[0,0]))
+            print('TN - True Negative {}'.format(cmat[0,0]))
             print('FP - False Positive {}'.format(cmat[0,1]))
             print('FN - False Negative {}'.format(cmat[1,0]))
             print('TP - True Positive {}'.format(cmat[1,1]))
