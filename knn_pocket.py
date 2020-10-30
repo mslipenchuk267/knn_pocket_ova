@@ -4,6 +4,7 @@ from scipy.spatial import distance
 from scipy import stats
 import datetime
 
+
 def compute_accuracy(test_y, pred_y):
     """Compute the accuracy of the predicted test labels against the ground truth test labels
 
@@ -15,7 +16,7 @@ def compute_accuracy(test_y, pred_y):
         float: acc = float between 0 and 1 representign the classification accuracy
     """
 
-    acc = np.where(test_y==pred_y)
+    acc = np.where(test_y == pred_y)
     acc = acc[0].shape[0] / len(test_y) * 100
     return acc
 
@@ -33,10 +34,21 @@ def test_knn(train_x, train_y, test_x, num_nn):
         np.array: pred_y = predicted labels of the test_x data set (num_test,)
     """
 
-    # VECTORIZED Version - Much faster
-    pred_y = train_y[distance.cdist(test_x, train_x, metric='euclidean').argmin(1)]
+    # Partially Vectorized Version
+    #  I vectorized computing the distances and then iteratively choose the num_nn closest neighbors
+    #  and select the most common label.
+    print(f"Starting kNN (k = {num_nn})")
+    pred_y = np.empty(0)
+    distances = distance.cdist(test_x, train_x)
+    for i, observation_distances in enumerate(distances):
+        closest_neighbors = observation_distances.argsort()[:num_nn]
+        closest_labels = [train_y[closest_neighbor_index]
+                          for closest_neighbor_index in closest_neighbors]
+        predicted_label = stats.mode(closest_labels)[0][0]
+        print(f"Percent Done: {round(i/len(distances)*100, 3)}%", end='\r')
+        pred_y = np.append(pred_y, predicted_label)
 
-    # NON-VECTORIZED VERSION - Runs forever.....
+    # Non-Vectorized VERSION - Runs forever.....
     # pred_y = np.empty(0)
     # # Iterate through all test observations and find closest neighbors -> get the most common label
     # for observation in test_x:
@@ -54,13 +66,13 @@ def test_knn(train_x, train_y, test_x, num_nn):
     #     closest_neighbors = observation_distances.argsort()[:num_nn]
     #     print("----------------------------------")
     #     print("Closest Neighbors")
-    #     # Print the indices, distances, and flabels of the closest neighbors 
+    #     # Print the indices, distances, and flabels of the closest neighbors
     #     for neighbor in closest_neighbors:
     #         print(f"Index: {neighbor} | Distance: {observation_distances[neighbor]}  Label: {train_y[neighbor]}")
     #     # 3. Pick the most common label of the num_nn nearest neighbors
     #     closest_labels = [train_y[i] for i in closest_neighbors]
     #     print(f"Closest Labels: {closest_labels}")
-    #     # Select the mode or argmax 
+    #     # Select the mode or argmax
     #     predicted_label = stats.mode(closest_labels)[0][0]
     #     print(f"Predicted Label: {predicted_label}")
     #     # Set the predicted label for the test observation
@@ -134,15 +146,19 @@ def main():
     testX = dataX[numTrainingExamples:, :]
     testY = dataY[numTrainingExamples:]
 
-    # TO-DO: Add code here
+    # kNN Section -------------------------------------------------------------
+    k_values = [1, 3, 5, 7, 9]
+    for k_value in k_values:
+        time_before = datetime.datetime.now()
+        pred_y = test_knn(trainX, trainY, testX, k_value)
+        time_after = datetime.datetime.now()
 
-    time_before = datetime.datetime.now()
-    pred_y = test_knn(trainX, trainY, testX, 3)
-    time_after = datetime.datetime.now()
-    run_time = time_after - time_before
-    print(f"Run Time: {run_time}")
-    kNN_acc = compute_accuracy(testY, pred_y)
-    print(f"Accuracy : {kNN_acc}%")
+        run_time = time_after - time_before
+        print(f"Run Time: {run_time}")
+
+        kNN_acc = compute_accuracy(testY, pred_y)
+        print(f"Accuracy : {kNN_acc}%")
+
 
 if __name__ == "__main__":
     main()
